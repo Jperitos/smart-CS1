@@ -4,13 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Recycle } from "lucide-react";
 import { Eye, EyeOff } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
-import api from '@/lib/api';
+import api from "@/lib/api";
 
 type LoginProps = {
   onOpenRegister?: () => void;
@@ -21,19 +22,30 @@ const Login = ({ onOpenRegister, onClose }: LoginProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
 
   const { login, loading } = useAuth();
   const handleGoogleSignIn = () => {
-    window.location.href = 'http://localhost:8000/auth/google';
+    if (!agreeToTerms) {
+      alert("Please agree to the terms and conditions to continue.");
+      return;
+    }
+    window.location.href = "http://localhost:8000/auth/google";
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!agreeToTerms) {
+      alert("Please agree to the terms and conditions to continue.");
+      return;
+    }
+
     try {
       await login(email, password);
     } catch (error) {
       // Error handling is done in the context
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
     }
   };
 
@@ -59,6 +71,7 @@ const Login = ({ onOpenRegister, onClose }: LoginProps) => {
           onClick={handleGoogleSignIn}
           variant="outline"
           className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-slate-800"
+          disabled={!agreeToTerms}
         >
           {/* Google SVG */}
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -107,32 +120,55 @@ const Login = ({ onOpenRegister, onClose }: LoginProps) => {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-<div className="space-y-2 relative">
-  <Label htmlFor="password" className="dark:text-gray-300">
-    Password
-  </Label>
-  <Input
-    id="password"
-    type={showPassword ? "text" : "password"}
-    placeholder="Enter your password"
-    className="dark:bg-slate-800 dark:text-white dark:border-gray-600 pr-10"
-    value={password}
-    onChange={(e) => setPassword(e.target.value)}
-  />
-  <button
-    type="button"
-    onClick={() => setShowPassword(!showPassword)}
-    className="absolute right-3 top-9 text-gray-500 dark:text-gray-300 hover:text-gray-700"
-  >
-    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-  </button>
-</div>
+          <div className="space-y-2 relative">
+            <Label htmlFor="password" className="dark:text-gray-300">
+              Password
+            </Label>
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              className="dark:bg-slate-800 dark:text-white dark:border-gray-600 pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 text-gray-500 dark:text-gray-300 hover:text-gray-700"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
 
+          {/* Terms and Conditions Checkbox */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="agree-terms"
+              checked={agreeToTerms}
+              onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
+              className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white h-4 w-4"
+            />
+            <label
+              htmlFor="agree-terms"
+              className="text-xs font-regukar leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 dark:text-gray-300 cursor-pointer"
+            >
+              I agree to the{" "}
+              <Link
+                to="/terms"
+                className="text-green-600 hover:underline dark:text-green-400"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Terms and Conditions
+              </Link>
+            </label>
+          </div>
 
           <Button
             type="submit"
             className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
-            disabled={loading}
+            disabled={loading || !agreeToTerms}
           >
             {loading ? "Signing In..." : "Sign In"}
           </Button>

@@ -33,6 +33,7 @@ const gpsBackupRoutes = require('./routers/gpsBackupRoutes');
 const userInfoRoutes = require('./routers/userInfoRoutes');
 const cacheRoutes = require('./routers/cacheRoutes');
 const routeRoutes = require('./routers/routeRoutes');
+const backupRoutes = require('./routers/backupRouter');
 const { sendCriticalBinNotification, sendWarningBinNotification } = require('./controllers/notificationController');
 const BinHistoryProcessor = require('./utils/binHistoryProcessor');
 const binNotificationController = require('./controllers/binNotificationController');
@@ -41,6 +42,7 @@ const binHealthMonitor = require('./services/binHealthMonitor');
 const gpsBackupService = require('./services/gpsBackupService');
 const smsNotificationService = require('./services/smsNotificationService');
 const gsmService = require('./services/gsmService');
+const backupScheduler = require('./services/backupScheduler');
 
 
 
@@ -287,6 +289,30 @@ app.use('/api/gps-backup', gpsBackupRoutes);
 app.use('/api', userInfoRoutes);
 app.use('/api/cache', cacheRoutes);
 app.use('/api/routes', routeRoutes);
+app.use('/api/backup', backupRoutes);
+
+// Backup status endpoint for monitoring
+app.get('/api/backup/health', (req, res) => {
+  try {
+    const backupScheduler = require('./services/backupScheduler');
+    const status = backupScheduler.getScheduleStatus();
+    
+    res.json({
+      status: 'healthy',
+      scheduler: {
+        running: status.isRunning,
+        jobs: Object.keys(status.jobs).length
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 app.use(errorHandler);
 
@@ -1017,6 +1043,11 @@ app.listen(PORT, '0.0.0.0', async () => {
   // Start bin health monitoring system
   console.log('[SERVER] Starting bin health monitoring system...');
   binHealthMonitor.start();
+  
+  // Start backup scheduler
+  console.log('[SERVER] Starting backup scheduler...');
+  backupScheduler.start();
+  console.log('✅ Backup scheduler started');
   
   // Initialize GPS backup service
   await gpsBackupService.initialize();

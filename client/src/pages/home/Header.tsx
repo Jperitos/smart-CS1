@@ -54,12 +54,12 @@ const Header = () => {
               >
                 Login
               </Button>
-              <Button
+              {/* <Button
                 className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800 px-5 py-2"
                 onClick={() => setShowRegister(true)}
               >
                 Register
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
