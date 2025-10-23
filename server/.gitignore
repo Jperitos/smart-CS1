@@ -26,3 +26,7 @@ dist/
 *.tmp
 *.swp
 .env
+
+# Backup files and folders
+backups/
+*.json

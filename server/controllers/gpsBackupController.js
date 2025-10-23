@@ -247,6 +247,91 @@ class GPSBackupController {
       });
     }
   }
+
+  // Mobile app specific endpoints
+  static async saveGPSBackup(req, res) {
+    try {
+      const { binId, latitude, longitude, timestamp, source } = req.body;
+      
+      if (!binId || !latitude || !longitude) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: binId, latitude, longitude'
+        });
+      }
+
+      const backupData = {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        timestamp: timestamp || Date.now(),
+        binId: binId,
+        source: source || 'gps_live'
+      };
+
+      const result = await gpsBackupService.saveBackupCoordinates(binId, backupData);
+      
+      if (result) {
+        res.json({
+          success: true,
+          message: 'GPS backup saved successfully',
+          data: backupData
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: 'Failed to save GPS backup'
+        });
+      }
+    } catch (error) {
+      console.error('[GPS BACKUP API] Error saving GPS backup:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  static async getGPSBackup(req, res) {
+    try {
+      const { binId } = req.params;
+      const backupData = await gpsBackupService.getBackupCoordinates(binId);
+      
+      if (backupData) {
+        res.json({
+          success: true,
+          data: backupData
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: 'No GPS backup found for this bin'
+        });
+      }
+    } catch (error) {
+      console.error('[GPS BACKUP API] Error getting GPS backup:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  static async getAllGPSBackups(req, res) {
+    try {
+      const allBackups = await gpsBackupService.getAllBackupCoordinates();
+      
+      res.json({
+        success: true,
+        data: allBackups
+      });
+    } catch (error) {
+      console.error('[GPS BACKUP API] Error getting all GPS backups:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = GPSBackupController;

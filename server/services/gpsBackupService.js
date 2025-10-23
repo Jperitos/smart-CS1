@@ -251,6 +251,40 @@ class GPSBackupService {
     }
     console.log('[GPS BACKUP] Service stopped');
   }
+
+  // Get all backup coordinates for mobile app
+  async getAllBackupCoordinates() {
+    try {
+      const rtdb = admin.database();
+      const snapshot = await rtdb.ref('monitoring/backup').once('value');
+      
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const result = {};
+        
+        // Process each bin's backup data
+        Object.keys(data).forEach(binId => {
+          const binData = data[binId];
+          if (binData.backup_latitude && binData.backup_longitude) {
+            result[binId] = {
+              latitude: binData.backup_latitude,
+              longitude: binData.backup_longitude,
+              timestamp: binData.backup_timestamp || Date.now(),
+              binId: binId,
+              source: 'gps_live'
+            };
+          }
+        });
+        
+        return result;
+      }
+      
+      return {};
+    } catch (error) {
+      console.error('[GPS BACKUP] Error getting all backup coordinates:', error);
+      return {};
+    }
+  }
 }
 
 // Create singleton instance

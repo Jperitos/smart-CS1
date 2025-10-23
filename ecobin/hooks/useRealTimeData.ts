@@ -156,44 +156,35 @@ export function useRealTimeData() {
   // Load last known GPS locations on startup
   useEffect(() => {
     const loadLastKnownGPS = async () => {
+      // Add a small delay to prevent immediate network calls on app startup
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       try {
-        // First try to load from Firebase
-        const firebaseBackups = await firebaseBackupService.getAllBackupGPS();
+        // First try to load from AsyncStorage (faster and more reliable)
+        const [bin1GPS, bin2GPS] = await Promise.all([
+          AsyncStorage.getItem('lastKnownGPS_bin1'),
+          AsyncStorage.getItem('lastKnownGPS_bin2')
+        ]);
         
-        if (firebaseBackups.bin1 || firebaseBackups.bin2) {
+        if (bin1GPS || bin2GPS) {
           setLastKnownGPS({
-            bin1: firebaseBackups.bin1 || null,
-            bin2: firebaseBackups.bin2 || null
+            bin1: bin1GPS ? JSON.parse(bin1GPS) : null,
+            bin2: bin2GPS ? JSON.parse(bin2GPS) : null
           });
         } else {
-          // Fallback to AsyncStorage if Firebase is not available
-          const [bin1GPS, bin2GPS] = await Promise.all([
-            AsyncStorage.getItem('lastKnownGPS_bin1'),
-            AsyncStorage.getItem('lastKnownGPS_bin2')
-          ]);
+          // Only try Firebase if no local data is available
+          const firebaseBackups = await firebaseBackupService.getAllBackupGPS();
           
-          setLastKnownGPS({
-            bin1: bin1GPS ? JSON.parse(bin1GPS) : null,
-            bin2: bin2GPS ? JSON.parse(bin2GPS) : null
-          });
+          if (firebaseBackups.bin1 || firebaseBackups.bin2) {
+            setLastKnownGPS({
+              bin1: firebaseBackups.bin1 || null,
+              bin2: firebaseBackups.bin2 || null
+            });
+          }
         }
       } catch (error) {
-        console.error('Error loading last known GPS locations:', error);
-        
-        // Fallback to AsyncStorage on error
-        try {
-          const [bin1GPS, bin2GPS] = await Promise.all([
-            AsyncStorage.getItem('lastKnownGPS_bin1'),
-            AsyncStorage.getItem('lastKnownGPS_bin2')
-          ]);
-          
-          setLastKnownGPS({
-            bin1: bin1GPS ? JSON.parse(bin1GPS) : null,
-            bin2: bin2GPS ? JSON.parse(bin2GPS) : null
-          });
-        } catch (fallbackError) {
-          console.error('Error loading from AsyncStorage fallback:', fallbackError);
-        }
+        // Silent error handling - no console errors
+        // App will work with default coordinates
       }
     };
     
