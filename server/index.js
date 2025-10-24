@@ -49,12 +49,20 @@ const backupScheduler = require('./services/backupScheduler');
 const realtimeDb = admin.database();
 const dataRef = realtimeDb.ref('monitoring/data');
 const bin1Ref = realtimeDb.ref('monitoring/bin1');
+const bin2Ref = realtimeDb.ref('monitoring/bin2');
 
 // Throttling variables to reduce Firebase reads
 let lastDataProcessTime = 0;
 let lastBin1ProcessTime = 0;
+let lastBin2ProcessTime = 0;
 const PROCESS_THROTTLE_MS = 5000; // Process at most every 5 seconds
 const GPS_PROCESS_THROTTLE_MS = 60000; // GPS processing at most every minute
+
+// Notification flags for each bin
+let criticalNotificationSent = false;
+let warningNotificationSent = false;
+let criticalNotificationSentBin2 = false;
+let warningNotificationSentBin2 = false;
 
 
 // Initialize Firebase with env variables
@@ -334,8 +342,7 @@ app.get('/auth/google/callback',
   }
 );
 
-let criticalNotificationSent = false;
-let warningNotificationSent = false; // For the automatic threshold check
+// Notification flags moved to top of file
 
 // Quota monitoring
 let firebaseOperationsCount = 0;
@@ -581,7 +588,133 @@ function setupRealTimeMonitoring() {
     }
   });
   
-  console.log('✅ Real-time monitoring active for both data paths');
+  // Monitor monitoring/bin2 (new path) - OPTIMIZED WITH THROTTLING
+  bin2Ref.on('value', async (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      const now = Date.now();
+      
+      // Throttle processing to avoid excessive Firebase reads
+      if (now - lastBin2ProcessTime < PROCESS_THROTTLE_MS) {
+        return;
+      }
+      
+      lastBin2ProcessTime = now;
+      
+      console.log('\n === REAL-TIME DATA UPDATE (monitoring/bin2) ===');
+      console.log(` Timestamp: ${new Date().toLocaleString()}`);
+      console.log(` Weight: ${data.weight_kg || 0} kg (${data.weight_percent || 0}%)`);
+      console.log(` Distance: ${data.distance_cm || 0} cm (Height: ${data.height_percent || 0}%)`);
+      console.log(` Bin Level: ${data.bin_level || 0}%`);
+      console.log(` GPS: ${data.latitude || 'N/A'}, ${data.longitude || 'N/A'}`);
+      console.log(` GPS Valid: ${data.gps_valid || false}`);
+      console.log(` Satellites: ${data.satellites || 0}`);
+      console.log(' ================================================\n');
+      
+      // Process bin history for bin2 (with quota protection) - OPTIMIZED
+      try {
+        // Process GPS data directly from the raw data
+        const processedGPSData = {
+          latitude: data.latitude || 0,
+          longitude: data.longitude || 0,
+          gps_valid: data.gps_valid || false,
+          coordinates_source: data.coordinates_source || 'unknown'
+        };
+
+        // Process bin history for significant levels to reduce Firebase calls
+        if (data.bin_level >= 70 || data.bin_level <= 10) {
+          const historyResult = await BinHistoryProcessor.processExistingMonitoringData({
+            weight: data.weight_percent || 0,
+            distance: data.height_percent || 0,
+            binLevel: data.bin_level || 0,
+            gps: {
+              lat: processedGPSData.latitude,
+              lng: processedGPSData.longitude
+            },
+            gpsValid: processedGPSData.gps_valid,
+            satellites: data.satellites || 0,
+            errorMessage: null,
+            coordinatesSource: processedGPSData.coordinates_source
+          });
+          
+          if (historyResult.success) {
+            console.log(`[BIN HISTORY] Processed bin2 data: ${data.bin_level}%`);
+          } else {
+            console.log(`[BIN HISTORY] Failed to process bin2 data: ${historyResult.error}`);
+          }
+        }
+
+        // Check for automatic task creation and notifications for critical levels (separate from bin history processing)
+        if (data.bin_level >= 85) {
+          console.log(`[AUTOMATIC TASK] 🔍 Bin2 level ${data.bin_level}% >= 85% - checking for automatic task creation`);
+          try {
+            // 1. Create automatic task assignment FIRST
+            const taskResult = await automaticTaskService.createAutomaticTask({
+              binId: 'bin2',
+              binLevel: data.bin_level || 0,
+              binLocation: 'Secondary Location', // You can change this location
+              timestamp: new Date()
+            });
+
+            if (taskResult.success) {
+              console.log(`[AUTOMATIC TASK] ✅ ${taskResult.message}`);
+            } else {
+              console.log(`[AUTOMATIC TASK] ❌ ${taskResult.message} - ${taskResult.reason || taskResult.error}`);
+            }
+
+            // 2. Then send notifications
+            const notificationResult = await binNotificationController.checkBinAndNotify({
+              binId: 'bin2',
+              binLevel: data.bin_level || 0,
+              status: data.bin_level >= 90 ? 'critical' : 'warning',
+              gps: {
+                lat: data.latitude || 0,
+                lng: data.longitude || 0
+              },
+              timestamp: new Date(),
+              weight: data.weight_percent || 0,
+              distance: data.height_percent || 0,
+              gpsValid: data.gps_valid || false,
+              satellites: data.satellites || 0,
+              errorMessage: null
+            });
+            
+            if (notificationResult.notificationSent) {
+              console.log(`[BIN NOTIFICATION] Sent notification to janitor: ${notificationResult.type}`);
+            }
+          } catch (notifyErr) {
+            console.error('[BIN NOTIFICATION] Error sending notification:', notifyErr);
+          }
+        }
+      } catch (historyErr) {
+        console.error('[BIN HISTORY] Error processing monitoring data:', historyErr);
+      }
+      
+
+      // Notification logic for monitoring/bin2
+      try {
+        if (data.bin_level >= 85 && !criticalNotificationSentBin2) {
+          console.log('🚨 Sending critical bin2 notification...');
+          
+          // Automatic task creation is already handled in the main monitoring loop above
+          // Additional notification logic can be added here if needed
+          
+          criticalNotificationSentBin2 = true;
+        } else if (data.bin_level >= 70 && data.bin_level < 85 && !warningNotificationSentBin2) {
+          console.log('⚠️ Sending warning bin2 notification...');
+          warningNotificationSentBin2 = true;
+        } else if (data.bin_level < 70) {
+          // Reset flags when bin level drops below warning threshold
+          criticalNotificationSentBin2 = false;
+          warningNotificationSentBin2 = false;
+        }
+      } catch (notifyErr) {
+        console.error('Failed to send bin notification for monitoring/bin2:', notifyErr);
+      }
+    }
+  });
+  
+  console.log('✅ Real-time monitoring active for monitoring/data, monitoring/bin1, and monitoring/bin2');
 }
 
 app.get('/api/bin', async (req, res) => {
