@@ -131,9 +131,38 @@ export default function MapScreen() {
     return markers;
   }, [binData, bin2Data, isGPSValidForBin, getBackupCoordinates]);
 
+  // Get markers for display - lock target bin coordinates during navigation
+  // This fixes the bug where the bin location moves during navigation instead of staying fixed
+  const getDisplayMarkers = useCallback((): Bin[] => {
+    const realTimeMarkers = getRealTimeMarkers();
+    
+    // If we're navigating and have a target bin, lock its coordinates
+    if (isNavigating && targetBin) {
+      return realTimeMarkers.map(marker => {
+        // If this marker matches our target bin, use the locked coordinates
+        if (marker.id === targetBin.id) {
+          return {
+            ...marker,
+            latitude: targetBin.latitude,
+            longitude: targetBin.longitude,
+            // Keep the real-time data for other properties like fill level
+            percentage: marker.percentage,
+            gpsValid: marker.gpsValid,
+            coordinatesSource: "navigation_locked",
+            locationSource: "Navigation Locked"
+          };
+        }
+        return marker;
+      });
+    }
+    
+    return realTimeMarkers;
+  }, [getRealTimeMarkers, isNavigating, targetBin]);
+
   // Update region when real-time data is available (GPS live or backup)
+  // Only update region if not currently navigating
   useEffect(() => {
-    if (binData || bin2Data) {
+    if ((binData || bin2Data) && !isNavigating) {
       const realTimeMarkers = getRealTimeMarkers();
       if (realTimeMarkers.length > 0) {
         // If we have multiple markers, center the map to show all of them
@@ -166,7 +195,7 @@ export default function MapScreen() {
         }
       }
     }
-  }, [binData, bin2Data, getRealTimeMarkers]);
+  }, [binData, bin2Data, getRealTimeMarkers, isNavigating]);
 
   // Update last update time
   useEffect(() => {
@@ -464,6 +493,13 @@ export default function MapScreen() {
           );
         }
 
+        // Lock the target bin coordinates for navigation
+        setTargetBin({
+          ...bin,
+          latitude: bin.latitude,
+          longitude: bin.longitude,
+        });
+
         // Update map region to show the entire route
         if (routeResult.coordinates.length > 0) {
           const coordinates = routeResult.coordinates;
@@ -584,9 +620,9 @@ export default function MapScreen() {
     return date.toLocaleDateString("en-US", options);
   }
 
-  // Get real-time markers
-  const realTimeMarkers = getRealTimeMarkers();
-  const allBins = [...bins, ...realTimeMarkers];
+  // Get markers for display (with navigation locking)
+  const displayMarkers = getDisplayMarkers();
+  const allBins = [...bins, ...displayMarkers];
 
   const filteredBins = allBins.filter((bin) => {
     const matchesSearch =
@@ -876,7 +912,7 @@ export default function MapScreen() {
                       <Text style={styles.timeLogLabel}>Bin Active:</Text>
                       <Text style={styles.timeLogValue}>2025-10-08 01:00:00</Text>
                     </View>
-                    {realTimeMarkers.some((rtBin) => rtBin.id === selectedBin.id) && (
+                    {displayMarkers.some((rtBin) => rtBin.id === selectedBin.id) && (
                       <>
                         <View style={styles.timeLogRow}>
                           <Text style={styles.timeLogLabel}>Coordinates Source:</Text>
