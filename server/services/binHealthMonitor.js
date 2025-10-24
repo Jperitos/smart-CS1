@@ -267,8 +267,8 @@ class BinHealthMonitor {
         if (highSeverityIssues.length > 0) {
           notificationData = {
             type: 'bin_maintenance_urgent',
-            title: '🚨 Urgent: Bin Maintenance Required',
-            message: `${highSeverityIssues.length} bin(s) require immediate attention. Issues: ${highSeverityIssues.map(i => i.message).join(', ')}`,
+            title: 'Urgent: Bin Maintenance Required',
+            message: `${highSeverityIssues.length} bin require immediate attention. Issues: ${highSeverityIssues.map(i => i.message).join(', ')}`,
             severity: 'high',
             issues: highSeverityIssues,
             timestamp: Date.now(),
@@ -278,8 +278,8 @@ class BinHealthMonitor {
         } else if (mediumSeverityIssues.length > 0) {
           notificationData = {
             type: 'bin_maintenance',
-            title: '⚠️ Bin Maintenance Alert',
-            message: `${mediumSeverityIssues.length} bin(s) need attention. Issues: ${mediumSeverityIssues.map(i => i.message).join(', ')}`,
+            title: 'Bin Maintenance Alert',
+            message: `${mediumSeverityIssues.length} bin need attention. Issues: ${mediumSeverityIssues.map(i => i.message).join(', ')}`,
             severity: 'medium',
             issues: mediumSeverityIssues,
             timestamp: Date.now(),

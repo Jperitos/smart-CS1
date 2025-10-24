@@ -161,12 +161,14 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState<boolean>(false);
   const [selectedRoute, setSelectedRoute] = useState<string>("");
   const [isAddBinModalOpen, setIsAddBinModalOpen] = useState(false);
-  
 
   // Memoized handlers to prevent unnecessary re-renders
-  const handleBinClick = useCallback((binId: string) => {
-    if (onBinClick) onBinClick(binId);
-  }, [onBinClick]);
+  const handleBinClick = useCallback(
+    (binId: string) => {
+      if (onBinClick) onBinClick(binId);
+    },
+    [onBinClick]
+  );
 
   const handleRouteSelect = useCallback((route: string) => {
     setSelectedRoute(route);
@@ -194,7 +196,7 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
   // Memoized bin locations processing for better performance
   const updatedBinLocations = useMemo(() => {
     if (dynamicBinLocations.length === 0) return [];
-    
+
     return dynamicBinLocations.map((bin) => ({
       id: bin.id,
       name: bin.name,
@@ -229,7 +231,7 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
 
   // Debug logging for real-time data (only in development)
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       if (bin1Data) {
         console.log("🗺️ Staff Map - Real-time bin1 data received:", bin1Data);
       }
@@ -251,36 +253,40 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
   const ESRI_SAT_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
   const CARTODB_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
   const STAMEN_TERRAIN_URL = "https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png";
-  const MAPBOX_URL = "https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw";
+  const MAPBOX_URL =
+    "https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw";
   const SAT_TRANSITION_ZOOM = 15; // Switch to satellite at zoom 15
 
   // Optimized tile layer options with zoom 22 support
-  const tileLayerOptions = useMemo(() => ({
-    base: {
-      url: OSM_URL,
-      maxZoom: 22,
-      minZoom: 1,
-      detectRetina: false, // Disable retina for faster loading
-      attribution: "&copy; OpenStreetMap contributors",
-      subdomains: ['a', 'b', 'c'],
-      tileSize: 256,
-      zoomOffset: 0,
-      maxNativeZoom: 19
-    },
-    satellite: {
-      url: ESRI_SAT_URL,
-      maxNativeZoom: 22,
-      maxZoom: 22,
-      minZoom: 1,
-      opacity: 0, // Start with satellite hidden
-      zIndex: 15,
-      detectRetina: false, // Disable retina for faster loading
-      attribution: "Tiles &copy; Esri",
-      subdomains: ['server'],
-      tileSize: 256,
-      zoomOffset: 0
-    }
-  }), []);
+  const tileLayerOptions = useMemo(
+    () => ({
+      base: {
+        url: OSM_URL,
+        maxZoom: 22,
+        minZoom: 1,
+        detectRetina: false, // Disable retina for faster loading
+        attribution: "&copy; OpenStreetMap contributors",
+        subdomains: ["a", "b", "c"],
+        tileSize: 256,
+        zoomOffset: 0,
+        maxNativeZoom: 19,
+      },
+      satellite: {
+        url: ESRI_SAT_URL,
+        maxNativeZoom: 22,
+        maxZoom: 22,
+        minZoom: 1,
+        opacity: 0, // Start with satellite hidden
+        zIndex: 15,
+        detectRetina: false, // Disable retina for faster loading
+        attribution: "Tiles &copy; Esri",
+        subdomains: ["server"],
+        tileSize: 256,
+        zoomOffset: 0,
+      },
+    }),
+    []
+  );
 
   // Optimized location finding function
   const findMyLocation = useCallback(() => {
@@ -354,7 +360,7 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
 
     // Only listen to zoom end events for better performance
     map.on("zoomend", updateLayers);
-    
+
     // Initial state
     updateLayers();
 
@@ -378,7 +384,7 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
       {/* Clean Map Section - Mobile Style */}
       <div
         ref={mapContainerRef}
-        className="h-[500px] bg-white dark:bg-gray-900 rounded-xl shadow-lg relative mb-4 overflow-hidden"
+        className="h-[580px] bg-white dark:bg-gray-900 rounded-xl shadow-lg relative mb-4 overflow-hidden"
       >
         {/* Minimal Header */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
@@ -400,7 +406,7 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
         </div>
 
         {/* Map Content */}
-        <div className="h-full w-full relative" style={{ paddingTop: '60px' }}>
+        <div className="h-full w-full relative" style={{ paddingTop: "60px" }}>
           {loading && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 dark:bg-gray-900/80">
               <div className="map-loading-spinner"></div>
@@ -463,15 +469,14 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
                 keepBuffer={2}
               />
 
-
               {/* Map Type Indicator */}
               <MapTypeIndicator transitionZoomLevel={15} />
 
               {updatedBinLocations.map((bin) => (
-                <DynamicBinMarker 
-                  key={`${bin.id}-${bin.name}-${bin.timestamp}`} 
-                  bin={bin} 
-                  onBinClick={handleBinClick} 
+                <DynamicBinMarker
+                  key={`${bin.id}-${bin.name}-${bin.timestamp}`}
+                  bin={bin}
+                  onBinClick={handleBinClick}
                   showPopup={!showRightPanel}
                 />
               ))}
@@ -534,8 +539,8 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                   <span className="text-sm font-medium">Location found</span>
                 </div>
-                <button 
-                  onClick={() => setUserLocation(null)} 
+                <button
+                  onClick={() => setUserLocation(null)}
                   className="ml-3 text-white hover:text-gray-200 transition-colors"
                 >
                   ×
@@ -548,7 +553,7 @@ export function StaffMapSection({ onBinClick, showRightPanel, isPanelOpen, right
 
           {/* Right Panel - Positioned within the map */}
           {showRightPanel && rightPanel && (
-            <div className="absolute top-0 right-0 h-full z-[1000] transform transition-transform duration-300 ease-out translate-x-0">
+            <div className="absolute top-[60px] right-0 h-[calc(100%-60px)] z-[1000] transform transition-transform duration-300 ease-out translate-x-0">
               {rightPanel}
             </div>
           )}
