@@ -52,7 +52,7 @@ export default function MapScreen() {
   const [isLocationTracking, setIsLocationTracking] = useState(false);
   const [arrivalDetected, setArrivalDetected] = useState(false);
   const [proximityThreshold] = useState(50); // 50 meters proximity threshold
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(false); // Voice navigation disabled by default
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -362,11 +362,9 @@ export default function MapScreen() {
       const settings = voiceNavigation.getSettings();
       setVoiceEnabled(settings.enabled);
 
-      // Only preload common phrases if voice is enabled
-      // Note: We don't speak anything during initialization
-      if (settings.enabled) {
-        await voiceNavigation.preloadCommonPhrases();
-      }
+      // Don't preload phrases during initialization to avoid any speech activation
+      // Voice navigation will only activate when explicitly enabled by user
+      console.log('[Map] Voice navigation initialized:', settings.enabled ? 'enabled' : 'disabled');
     };
 
     initializeVoiceNavigation();

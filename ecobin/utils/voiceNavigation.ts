@@ -39,7 +39,14 @@ export class VoiceNavigationService {
     try {
       const savedSettings = await AsyncStorage.getItem('voiceSettings');
       if (savedSettings) {
-        this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
+        const parsedSettings = JSON.parse(savedSettings);
+        this.settings = { ...this.settings, ...parsedSettings };
+        
+        // Ensure voice is disabled by default if not explicitly enabled
+        if (parsedSettings.enabled === undefined) {
+          this.settings.enabled = false;
+          await this.saveSettings({ enabled: false });
+        }
       } else {
         // If no saved settings, ensure voice is disabled by default
         this.settings.enabled = false;
@@ -77,6 +84,13 @@ export class VoiceNavigationService {
     await this.saveSettings({ enabled: true });
   }
 
+  // Method to force disable voice navigation (for app startup)
+  public async forceDisableVoice(): Promise<void> {
+    await this.stopSpeaking();
+    this.settings.enabled = false;
+    await AsyncStorage.setItem('voiceSettings', JSON.stringify(this.settings));
+  }
+
   public getSettings(): VoiceSettings {
     return { ...this.settings };
   }
@@ -98,7 +112,6 @@ export class VoiceNavigationService {
         pitch: this.settings.pitch,
         rate: this.settings.rate,
         volume: this.settings.volume,
-        quality: Speech.VoiceQuality.Enhanced,
         onStart: () => {
           this.isPlaying = true;
           console.log('[VoiceNavigation] Speech started');
@@ -217,29 +230,9 @@ export class VoiceNavigationService {
       return;
     }
 
-    const commonPhrases = [
-      'Navigation started',
-      'You have arrived',
-      'GPS signal lost',
-      'GPS signal restored',
-      'Continue straight',
-      'Turn left',
-      'Turn right',
-      'Task completed'
-    ];
-
-    // Preload by speaking each phrase silently (volume 0) to cache them
-    for (const phrase of commonPhrases) {
-      try {
-        await Speech.speak(phrase, {
-          volume: 0,
-          rate: 2.0,
-          language: this.settings.language
-        });
-      } catch (error) {
-        console.error(`Error preloading phrase "${phrase}":`, error);
-      }
-    }
+    // Skip preloading to avoid any speech engine activation
+    // Phrases will be loaded on-demand when actually needed
+    console.log('[VoiceNavigation] Preloading skipped - voice is disabled or preloading disabled');
   }
 }
 
