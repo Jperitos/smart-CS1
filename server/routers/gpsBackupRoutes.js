@@ -26,4 +26,9 @@ router.get('/dynamic-status/:binId', GPSBackupController.getDynamicBinStatus);
 // Get all bins with dynamic status
 router.get('/dynamic-status', GPSBackupController.getAllBinsDynamicStatus);
 
+// Mobile app specific endpoints - these must come before the /:binId route
+router.post('/save', GPSBackupController.saveGPSBackup);
+router.get('/all', GPSBackupController.getAllGPSBackups);
+router.get('/:binId', GPSBackupController.getGPSBackup);
+
 module.exports = router;

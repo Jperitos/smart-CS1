@@ -17,7 +17,7 @@ interface VoiceSettingsModalProps {
 
 export default function VoiceSettingsModal({ visible, onClose }: VoiceSettingsModalProps) {
   const [settings, setSettings] = useState<VoiceSettings>({
-    enabled: true,
+    enabled: false, // Voice navigation disabled by default
     volume: 0.8,
     rate: 1.0,
     pitch: 1.0,
@@ -43,12 +43,16 @@ export default function VoiceSettingsModal({ visible, onClose }: VoiceSettingsMo
   };
 
   const testVoice = async () => {
-    await voiceNavigation.speak('Voice navigation test. This is how your navigation will sound.');
+    if (settings.enabled) {
+      await voiceNavigation.speak('Voice navigation test. This is how your navigation will sound.');
+    } else {
+      Alert.alert('Voice Disabled', 'Please enable voice navigation first to test the voice.');
+    }
   };
 
   const resetToDefaults = async () => {
     const defaultSettings: VoiceSettings = {
-      enabled: true,
+      enabled: false, // Voice navigation disabled by default
       volume: 0.8,
       rate: 1.0,
       pitch: 1.0,
@@ -58,7 +62,10 @@ export default function VoiceSettingsModal({ visible, onClose }: VoiceSettingsMo
     
     setSettings(defaultSettings);
     await voiceNavigation.saveSettings(defaultSettings);
-    await voiceNavigation.speak('Voice settings reset to defaults.');
+    // Only speak if voice is enabled after reset
+    if (defaultSettings.enabled) {
+      await voiceNavigation.speak('Voice settings reset to defaults.');
+    }
   };
 
   return (

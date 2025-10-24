@@ -1,4 +1,4 @@
-const { rtdb } = require('../models/firebase');
+const { rtdb, db } = require('../models/firebase');
 const notificationController = require('../controllers/notificationController');
 
 class BinHealthMonitor {
@@ -241,8 +241,7 @@ class BinHealthMonitor {
       console.log(`[BIN HEALTH MONITOR] Sending ${issues.length} health issue notifications...`);
 
       // Get all staff users
-      const { db: firestoreDb } = require('../models/firebase');
-      const staffSnapshot = await firestoreDb.collection("users")
+      const staffSnapshot = await db.collection("users")
         .where("role", "in", ["staff", "supervisor"])
         .get();
 
@@ -310,7 +309,7 @@ class BinHealthMonitor {
    */
   async createRealtimeNotification(userId, notificationData) {
     try {
-      await db.ref(`notifications/${userId}`).push(notificationData);
+      await rtdb.ref(`notifications/${userId}`).push(notificationData);
       console.log(`[BIN HEALTH MONITOR] Created notification for user ${userId}: ${notificationData.title}`);
       return true;
     } catch (error) {
