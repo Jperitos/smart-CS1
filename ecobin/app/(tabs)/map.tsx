@@ -685,7 +685,7 @@ export default function MapScreen() {
               onPress={() => handleTravelModeChange("driving")}
             >
               <Text style={[styles.travelModeText, travelMode === "driving" && styles.travelModeTextActive]}>
-                🚗 Driving
+                 Driving
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -693,7 +693,7 @@ export default function MapScreen() {
               onPress={() => handleTravelModeChange("walking")}
             >
               <Text style={[styles.travelModeText, travelMode === "walking" && styles.travelModeTextActive]}>
-                🚶 Walking
+                 Walking
               </Text>
             </TouchableOpacity>
           </View>
